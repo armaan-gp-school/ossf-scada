@@ -79,10 +79,12 @@ export default function AppSidebar({ user }: { user: User }) {
                             <SidebarMenu>
                                 {/* Settings link */}
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton className='flex justify-between font-semibold text-sm'>
-                                        <span>Settings</span>
-                                        <Settings className="h-4 w-4" />
-                                    </SidebarMenuButton>
+                                    <Link href="/app/settings">
+                                        <SidebarMenuButton className='flex justify-between font-semibold text-sm'>
+                                            <span>Settings</span>
+                                            <Settings className="h-4 w-4" />
+                                        </SidebarMenuButton>
+                                    </Link>
                                 </SidebarMenuItem>
                                 {/* Logout button */}
                                 <SidebarMenuItem>
@@ -91,8 +93,6 @@ export default function AppSidebar({ user }: { user: User }) {
                                         <LogOut className="h-4 w-4" />
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
-                                {/* User info display */}
-                                <SidebarUser user={user} />
                             </SidebarMenu>
                         </SidebarGroupContent>
                     </SidebarGroup>
@@ -109,16 +109,4 @@ export default function AppSidebar({ user }: { user: User }) {
             </div> */}
         </div>
     )
-}
-
-// SidebarUser component that displays user information
-function SidebarUser({ user }: { user: User }) {
-    return (
-        <div className="flex mt-5 items-center space-x-2 px-2">
-            <div className="text-left">
-                <p className="text-xs font-medium">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
-            </div>
-        </div>
-    );
 }

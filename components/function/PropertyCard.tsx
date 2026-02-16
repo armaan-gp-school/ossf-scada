@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { AlertTriangle } from "lucide-react";
 import { updateDeviceProperty } from "@/lib/actions/arduino";
 
 interface ArduinoProperty {
@@ -24,9 +25,10 @@ interface PropertyCardProps {
     property: ArduinoProperty;
     thingId: string;
     onUpdate: () => void;
+    inAlert?: boolean;
 }
 
-export function PropertyCard({ property, thingId, onUpdate }: PropertyCardProps) {
+export function PropertyCard({ property, thingId, onUpdate, inAlert = false }: PropertyCardProps) {
     const [isUpdating, setIsUpdating] = useState(false);
     const [optimisticValue, setOptimisticValue] = useState<any>(null);
 
@@ -61,7 +63,10 @@ export function PropertyCard({ property, thingId, onUpdate }: PropertyCardProps)
         <Card className="border-muted">
             <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg">{property.name}</CardTitle>
+                    <CardTitle className="text-lg inline-flex items-center gap-2">
+                        {property.name}
+                        {inAlert && <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" aria-label="Out of range" />}
+                    </CardTitle>
                     <Badge
                         className={
                             property.permission === "READ_ONLY"

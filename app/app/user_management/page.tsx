@@ -11,7 +11,7 @@ export default async function UsersSettingsPage() {
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center mb-6">
-        <Link href="/settings" className="text-sm text-gray-500 flex items-center hover:text-[#500000]">
+        <Link href="/app/settings" className="text-sm text-gray-500 flex items-center hover:text-[#500000]">
           <Settings className="h-4 w-4 mr-1" />
           Settings
         </Link>

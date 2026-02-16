@@ -1,10 +1,11 @@
-import { ArrowLeft, Activity, Clock, MapPin, AlertTriangle, Settings } from "lucide-react"
+import { ArrowLeft, Activity, Clock, MapPin, Settings } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getDevice, getThing } from "@/lib/arduinoInit"
 import { DeviceProperties } from "@/components/function/DeviceProperties"
+import { evaluateThingAlerts } from "@/lib/alertEvaluation"
 
 // Device detail page component that displays information about a specific device
 export default async function SystemDetailPage({
@@ -12,11 +13,9 @@ export default async function SystemDetailPage({
 }: {
     params: Promise<{ id: string }>
 }) {
-    // Extract device ID from params and fetch device data
     const { id } = await params;
     const deviceData = await getDevice(id);
 
-    // Handle case when device is not found
     if (!deviceData) {
         return (
             <div className="container mx-auto p-6">
@@ -33,10 +32,8 @@ export default async function SystemDetailPage({
         );
     }
 
-    // Serialize the device data for client-side rendering
     const device = JSON.parse(JSON.stringify(deviceData));
 
-    // Fetch additional thing details if not included in device data
     if (!device.thing) {
         try {
             const thingData = await getThing(device.id);
@@ -44,6 +41,15 @@ export default async function SystemDetailPage({
         } catch (error) {
             console.error("Failed to fetch thing details:", error);
         }
+    }
+
+    const thingId = device.thing?.id ?? device.id;
+    const { alerts: alertStates } = await evaluateThingAlerts(thingId, device.name ?? device.id, {
+        sendSmsForNewAlerts: true,
+    });
+    const initialAlertMap: Record<string, boolean> = {};
+    for (const a of alertStates) {
+        initialAlertMap[a.propertyId] = a.inAlert;
     }
 
     return (
@@ -132,9 +138,10 @@ export default async function SystemDetailPage({
                     <CardDescription>Connected IoT device properties and their current values</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <DeviceProperties 
-                        thingId={device.thing?.id || ''} 
-                        initialProperties={JSON.parse(JSON.stringify(device.thing?.properties || []))} 
+                    <DeviceProperties
+                        thingId={thingId}
+                        initialProperties={JSON.parse(JSON.stringify(device.thing?.properties || []))}
+                        initialAlertMap={initialAlertMap}
                     />
                 </CardContent>
             </Card>
