@@ -11,13 +11,14 @@ export const usersTable = pgTable("users", {
 export type User = typeof usersTable.$inferSelect
 export type UserInsert = typeof usersTable.$inferInsert
 
-// SMS config (single row): sender email, encrypted app password, recipient, alert message
+// SMS config (single row): sender email, encrypted app password, recipients as JSON array of { phoneNumber, carrier }
 export const smsConfigTable = pgTable("sms_config", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   senderEmail: varchar({ length: 255 }).notNull().default(""),
   appPasswordEncrypted: text().notNull().default(""),
-  recipient: varchar({ length: 255 }).notNull().default(""),
-  alertMessage: text().notNull().default("Alert: A PLC property is out of range."),
+  recipient: varchar({ length: 255 }).notNull().default(""), // legacy; use recipientsJson
+  recipientsJson: text().notNull().default("[]"),
+  alertMessage: text().notNull().default("Alert: {deviceName} - {propertyName} is out of range (value: {value})."),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 

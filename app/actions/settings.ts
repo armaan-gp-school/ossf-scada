@@ -10,45 +10,82 @@ import { encrypt } from "@/lib/encrypt";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+export type SmsRecipientEntry = { phoneNumber: string; carrier: string };
+
 export type SmsConfigForm = {
   senderEmail: string;
   appPassword: string;
-  recipient: string;
-  alertMessage: string;
+  recipients: SmsRecipientEntry[];
 };
 
-/** Get SMS config for the settings form. Password is never returned. */
+/** Get SMS config for the settings form. Password is never returned. Migrates legacy recipient into recipientsJson on first read. */
 export async function getSmsConfig(): Promise<SmsConfigForm | null> {
   const row = await db.query.smsConfigTable.findFirst();
   if (!row) return null;
+
+  let recipients: SmsRecipientEntry[] = [];
+  try {
+    const parsed = JSON.parse(row.recipientsJson || "[]") as SmsRecipientEntry[];
+    if (Array.isArray(parsed)) recipients = parsed;
+  } catch {
+    // ignore
+  }
+  if (recipients.length === 0 && row.recipient) {
+    const { parseLegacyRecipient } = await import("@/lib/smsGateways");
+    const one = parseLegacyRecipient(row.recipient);
+    if (one) recipients = [one];
+  }
+
   return {
     senderEmail: row.senderEmail ?? "",
-    appPassword: "", // never send to client
-    recipient: row.recipient ?? "",
-    alertMessage: row.alertMessage ?? "",
+    appPassword: "",
+    recipients,
   };
 }
 
-/** Save SMS config. App password is encrypted before storing. */
-export async function saveSmsConfig(form: SmsConfigForm): Promise<{ ok: boolean; error?: string }> {
+/** Save only sender email and app password. */
+export async function saveSmsSenderConfig(senderEmail: string, appPassword: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const existing = await db.query.smsConfigTable.findFirst();
-    const encryptedPassword = form.appPassword ? encrypt(form.appPassword) : (existing?.appPasswordEncrypted ?? "");
+    const encryptedPassword = appPassword ? encrypt(appPassword) : (existing?.appPasswordEncrypted ?? "");
 
-    const row = {
-      senderEmail: form.senderEmail || "",
+    const updates = {
+      senderEmail: senderEmail || "",
       appPasswordEncrypted: encryptedPassword,
-      recipient: form.recipient || "",
-      alertMessage: form.alertMessage || "Alert: A PLC property is out of range.",
       updatedAt: new Date(),
     };
 
     if (existing) {
-      await db.update(smsConfigTable).set(row).where(eq(smsConfigTable.id, existing.id));
+      await db.update(smsConfigTable).set(updates).where(eq(smsConfigTable.id, existing.id));
     } else {
       await db.insert(smsConfigTable).values({
-        ...row,
-        appPasswordEncrypted: row.appPasswordEncrypted || "",
+        senderEmail: updates.senderEmail,
+        appPasswordEncrypted: updates.appPasswordEncrypted,
+        recipientsJson: "[]",
+        updatedAt: updates.updatedAt,
+      });
+    }
+    revalidatePath("/app/settings");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to save" };
+  }
+}
+
+/** Save only recipients list (phone + carrier). */
+export async function saveSmsRecipients(recipients: SmsRecipientEntry[]): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const existing = await db.query.smsConfigTable.findFirst();
+    const recipientsJson = JSON.stringify(recipients);
+
+    if (existing) {
+      await db.update(smsConfigTable).set({ recipientsJson, updatedAt: new Date() }).where(eq(smsConfigTable.id, existing.id));
+    } else {
+      await db.insert(smsConfigTable).values({
+        senderEmail: "",
+        appPasswordEncrypted: "",
+        recipientsJson,
+        updatedAt: new Date(),
       });
     }
     revalidatePath("/app/settings");

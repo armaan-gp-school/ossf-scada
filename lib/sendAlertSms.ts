@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { db } from "@/db";
 import { smsConfigTable } from "@/db/schema";
 import { decrypt } from "./encrypt";
+import { toGatewayEmail, parseLegacyRecipient } from "./smsGateways";
 
 export interface SendAlertOptions {
   deviceName?: string;
@@ -10,9 +11,8 @@ export interface SendAlertOptions {
   value?: unknown;
 }
 
-/**
- * Replaces placeholders in message: {deviceName}, {propertyName}, {value}
- */
+const HARDCODED_ALERT_MESSAGE = "Alert: {deviceName} - {propertyName} is out of range (value: {value}).";
+
 function formatMessage(template: string, opts: SendAlertOptions): string {
   return template
     .replace(/\{deviceName\}/g, String(opts.deviceName ?? "Unknown device"))
@@ -21,30 +21,47 @@ function formatMessage(template: string, opts: SendAlertOptions): string {
 }
 
 /**
- * Load SMS config from DB (first row). Returns null if not configured.
+ * Load SMS config from DB. Returns null if sender/password or recipients not configured.
  */
 export async function getSmsConfigForSend() {
   const row = await db.query.smsConfigTable.findFirst();
-  if (!row || !row.senderEmail || !row.appPasswordEncrypted || !row.recipient) return null;
+  if (!row || !row.senderEmail || !row.appPasswordEncrypted) return null;
   const appPassword = decrypt(row.appPasswordEncrypted);
   if (!appPassword) return null;
+
+  let recipients: { phoneNumber: string; carrier: string }[] = [];
+  try {
+    const parsed = JSON.parse(row.recipientsJson || "[]");
+    if (Array.isArray(parsed)) recipients = parsed;
+  } catch {
+    // ignore
+  }
+  if (recipients.length === 0 && row.recipient) {
+    const one = parseLegacyRecipient(row.recipient);
+    if (one) recipients = [one];
+  }
+
+  const recipientEmails = recipients
+    .map((r) => toGatewayEmail(r.phoneNumber, r.carrier))
+    .filter(Boolean);
+  if (recipientEmails.length === 0) return null;
+
   return {
     senderEmail: row.senderEmail,
     appPassword,
-    recipient: row.recipient,
-    alertMessage: row.alertMessage || "Alert: A PLC property is out of range.",
+    recipientEmails,
   };
 }
 
 /**
- * Send SMS via Gmail SMTP to the configured recipient (e.g. T-Mobile gateway).
- * Uses config from DB. Only call from server.
+ * Send SMS via Gmail SMTP to all configured recipients.
+ * Uses hardcoded message. Only call from server.
  */
 export async function sendAlertSms(messageOverride?: string, opts: SendAlertOptions = {}): Promise<{ success: boolean; error?: string }> {
   const config = await getSmsConfigForSend();
-  if (!config) return { success: false, error: "SMS not configured. Set sender, app password, and recipient in Settings." };
+  if (!config) return { success: false, error: "SMS not configured. Set sender, app password, and at least one recipient in Settings." };
 
-  const body = messageOverride ?? formatMessage(config.alertMessage, opts);
+  const body = messageOverride ?? formatMessage(HARDCODED_ALERT_MESSAGE, opts);
 
   try {
     const transporter = nodemailer.createTransport({
@@ -58,7 +75,7 @@ export async function sendAlertSms(messageOverride?: string, opts: SendAlertOpti
     });
     await transporter.sendMail({
       from: config.senderEmail,
-      to: config.recipient,
+      to: config.recipientEmails,
       subject: "Website Alert",
       text: body,
     });

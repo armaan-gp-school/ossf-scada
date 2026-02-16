@@ -1,7 +1,6 @@
-import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Settings } from "lucide-react"
-import { SmsConfigForm } from "@/components/function/SmsConfigForm"
+import { GmailAccountForm, SmsRecipientsForm } from "@/components/function/SmsConfigForm"
 import { getSmsConfig } from "@/app/actions/settings"
 
 export default async function SettingsPage() {
@@ -21,14 +20,25 @@ export default async function SettingsPage() {
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>SMS Alert Configuration</CardTitle>
+          <CardTitle>Gmail account</CardTitle>
           <CardDescription>
-            When a PLC property value goes out of range, an SMS can be sent to the number below.
-            Use a Gmail account with an App Password. For T-Mobile, use your number like: 5053974974@tmomail.net
+            Sender email and App Password used to send SMS alerts. Update these separately from recipients.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SmsConfigForm initialConfig={smsConfig} />
+          <GmailAccountForm initialConfig={smsConfig} />
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-2xl mt-6">
+        <CardHeader>
+          <CardTitle>SMS recipients</CardTitle>
+          <CardDescription>
+            Phone numbers and carriers that will receive alert SMS messages. Add multiple recipients if needed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SmsRecipientsForm initialRecipients={smsConfig?.recipients ?? []} />
         </CardContent>
       </Card>
 

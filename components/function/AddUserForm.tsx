@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { createUser } from "@/app/actions/admin"
 import { useForm } from "react-hook-form"
@@ -85,19 +84,6 @@ export function AddUserForm() {
                         </FormItem>
                     )}
                 />
-
-
-
-
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                        <FormLabel>Send Email Invitation</FormLabel>
-                        <FormDescription>An email will be sent to the user with login instructions</FormDescription>
-                    </div>
-                    <FormControl>
-                        <Switch checked={true} onCheckedChange={() => { }} />
-                    </FormControl>
-                </FormItem>
 
                 <Button type="submit" className="w-full bg-tama hover:bg-tama/80" disabled={pending}>
                     {pending ? "Adding User..." : "Add User"}
