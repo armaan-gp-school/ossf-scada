@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useActionState, useRef, useState } from "react"
+import { useActionState, useRef, useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -35,8 +36,15 @@ export function AddUserForm() {
 
     })
 
+    const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
     const [state, action, pending] = useActionState(createUser, initialState);
+
+    useEffect(() => {
+        if (state && "success" in state && state.success) {
+            router.refresh();
+        }
+    }, [state, router]);
 
     return (
         <Form  {...form}>

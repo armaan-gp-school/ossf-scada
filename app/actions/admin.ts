@@ -5,7 +5,6 @@ import { usersTable } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
 import { hash } from "bcrypt"
 import { createUserFormSchema } from "@/forms/createUser"
 import { verifyAuth } from "@/lib/dal"
@@ -26,7 +25,7 @@ type CreateUserError = {
   message: string;
 }
 
-export async function createUser(prevState: any, formData: FormData): Promise<CreateUserError> {
+export async function createUser(prevState: any, formData: FormData): Promise<CreateUserError | { success: true }> {
   // check if the user is an admin
   const user = await getUser();
   if (!user?.isAdmin) {
@@ -73,7 +72,7 @@ export async function createUser(prevState: any, formData: FormData): Promise<Cr
  
 
   revalidatePath("/app/user_management")
-  redirect("/app/user_management")
+  return { success: true }
 }
 
 export async function updateUser(formData: FormData): Promise<{ ok: boolean; error?: string }> {
@@ -98,7 +97,6 @@ export async function updateUser(formData: FormData): Promise<{ ok: boolean; err
       .where(eq(usersTable.id, id))
 
     revalidatePath("/app/user_management")
-    redirect("/app/user_management")
     return { ok: true }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to update user"
@@ -109,14 +107,12 @@ export async function updateUser(formData: FormData): Promise<{ ok: boolean; err
   }
 }
 
-export async function deleteUser(id: number) {
-
+export async function deleteUser(id: number): Promise<{ ok: boolean; error?: string }> {
   if (!id) {
-    throw new Error("Missing user ID")
+    return { ok: false, error: "Missing user ID" }
   }
 
   await db.delete(usersTable).where(eq(usersTable.id, id))
-
   revalidatePath("/app/user_management")
-  redirect("/app/user_management")
+  return { ok: true }
 } 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Edit2, Trash2 } from "lucide-react"
@@ -24,6 +25,7 @@ interface UserTableProps {
 }
 
 export function UserTable({ users }: UserTableProps) {
+  const router = useRouter()
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editName, setEditName] = useState("")
   const [editEmail, setEditEmail] = useState("")
@@ -59,6 +61,7 @@ export function UserTable({ users }: UserTableProps) {
       toast({ title: "Error", description: result.error, variant: "destructive" })
     } else {
       setEditingUser(null)
+      router.refresh()
     }
   }
 
@@ -98,7 +101,14 @@ export function UserTable({ users }: UserTableProps) {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-gray-500"
-                    onClick={() => deleteUser(user.id)}
+                    onClick={async () => {
+                      const result = await deleteUser(user.id)
+                      if (result?.ok) {
+                        router.refresh()
+                      } else if (result?.error) {
+                        toast({ title: "Error", description: result.error, variant: "destructive" })
+                      }
+                    }}
                     aria-label="Delete user"
                   >
                     <Trash2 className="h-4 w-4" />
