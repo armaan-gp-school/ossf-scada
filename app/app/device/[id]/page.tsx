@@ -63,7 +63,6 @@ export default async function SystemDetailPage({
                     </Button>
                 </Link>
                 <h1 className="text-2xl font-bold text-[#6B1D23]">{device.name}</h1>
-                <Badge className="ml-4 bg-green-100 text-green-800">Online</Badge>
             </div>
 
             {/* Device information cards grid */}
