@@ -33,7 +33,7 @@ export default async function SystemDetailPage({
     }
 
     const device = JSON.parse(JSON.stringify(deviceData));
-    console.log(device); // checking device data
+
     if (!device.thing) {
         try {
             const thingData = await getThing(device.id);
