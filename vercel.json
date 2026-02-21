@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/record-csv",
-      "schedule": "*/5 * * * *"
-    }
-  ]
-}
