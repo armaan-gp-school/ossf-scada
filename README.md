@@ -1,4 +1,4 @@
-# OSSF SCADA
+# TAMU-OSSF Center SCADA
 
 Web-based SCADA dashboard for the Texas A&M On-Site Sewage Facility.
 
