@@ -59,11 +59,12 @@ export function CenterMapView({
   const [systemState, setSystemState] = useState<CenterMapSystemView[]>(systems);
   const [pendingSystemKey, setPendingSystemKey] = useState<string | null>(null);
   const [openSystemKey, setOpenSystemKey] = useState<string | null>(null);
-  const [selectedBySystem, setSelectedBySystem] = useState<Record<string, string>>(() => {
+  const [selectedBySystem, setSelectedBySystem] = useState<Record<string, string | undefined>>(() => {
     const validIds = new Set(devices.map((d) => d.id));
-    const initial: Record<string, string> = {};
+    const initial: Record<string, string | undefined> = {};
     for (const system of systems) {
-      initial[system.key] = system.assignedDeviceId && validIds.has(system.assignedDeviceId) ? system.assignedDeviceId : "";
+      initial[system.key] =
+        system.assignedDeviceId && validIds.has(system.assignedDeviceId) ? system.assignedDeviceId : undefined;
     }
     return initial;
   });
@@ -71,8 +72,16 @@ export function CenterMapView({
   const devicesById = useMemo(() => {
     return new Map(devices.map((d) => [d.id, d]));
   }, [devices]);
+  const validDeviceIds = useMemo(() => new Set(devices.map((d) => d.id)), [devices]);
 
   const activeSystem = openSystemKey ? systemState.find((s) => s.key === openSystemKey) ?? null : null;
+  const isActiveSystemPending = activeSystem ? pendingSystemKey === activeSystem.key : false;
+
+  function getSelectedDeviceId(systemKey: string): string | undefined {
+    const selected = selectedBySystem[systemKey];
+    if (!selected || !validDeviceIds.has(selected)) return undefined;
+    return selected;
+  }
 
   function getStatusDisplay(system: CenterMapSystemView) {
     if (!system.assignedDeviceId) {
@@ -100,7 +109,7 @@ export function CenterMapView({
   }
 
   async function handleAssign(systemKey: string) {
-    const selectedDeviceId = selectedBySystem[systemKey];
+    const selectedDeviceId = getSelectedDeviceId(systemKey);
     if (!selectedDeviceId) {
       toast({ title: "No PLC selected", description: "Choose a PLC before connecting.", variant: "destructive" });
       return;
@@ -162,7 +171,7 @@ export function CenterMapView({
       return;
     }
 
-    setSelectedBySystem((curr) => ({ ...curr, [systemKey]: "" }));
+    setSelectedBySystem((curr) => ({ ...curr, [systemKey]: undefined }));
     toast({ title: "PLC removed", description: "System assignment cleared." });
     router.refresh();
   }
@@ -173,7 +182,6 @@ export function CenterMapView({
 
   function renderSystemCard(system: CenterMapSystemView, absolute = false) {
     const status = getStatusDisplay(system);
-    const isPending = pendingSystemKey === system.key;
 
     return (
       <button
@@ -195,68 +203,22 @@ export function CenterMapView({
           "rounded-xl border bg-slate-50 p-3 text-left transition-all hover:-translate-y-0.5 hover:border-slate-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
         )}
       >
-        <div className="flex h-full flex-col justify-between gap-2">
-          <div className="space-y-2">
-            <p
-              className="font-semibold tracking-wide text-slate-900"
-              style={system.rotate ? { transform: `rotate(${system.rotate}deg)` } : undefined}
-            >
-              {system.label}
-            </p>
-            <div className="inline-flex items-center gap-2 text-xs text-slate-600">
-              {status.icon}
-              <span>{status.text}</span>
-            </div>
-            <p className="text-xs text-slate-600">
-              {system.assignedDeviceId
-                ? `PLC: ${system.assignedDevice?.name ?? system.assignedDeviceId}`
-                : "No PLC connected"}
-            </p>
-          </div>
-
-          <div
-            className="space-y-2"
-            onClick={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
+        <div className="flex h-full flex-col gap-2">
+          <p
+            className="font-semibold tracking-wide text-slate-900"
+            style={system.rotate ? { transform: `rotate(${system.rotate}deg)` } : undefined}
           >
-            <Select
-              value={selectedBySystem[system.key] || undefined}
-              onValueChange={(value) =>
-                setSelectedBySystem((curr) => ({
-                  ...curr,
-                  [system.key]: value,
-                }))
-              }
-              disabled={isPending}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Select PLC" />
-              </SelectTrigger>
-              <SelectContent>
-                {devices.map((device) => (
-                  <SelectItem key={device.id} value={device.id}>
-                    {device.name} ({device.id})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <Button size="sm" className="h-8 text-xs" disabled={isPending} onClick={() => handleAssign(system.key)}>
-                <Link2 className="mr-1 h-3.5 w-3.5" />
-                Connect
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs"
-                disabled={isPending || !system.assignedDeviceId}
-                onClick={() => handleRemove(system.key)}
-              >
-                <Trash2 className="mr-1 h-3.5 w-3.5" />
-                Remove PLC
-              </Button>
-            </div>
+            {system.label}
+          </p>
+          <div className="inline-flex items-center gap-2 text-xs text-slate-600">
+            {status.icon}
+            <span>{status.text}</span>
           </div>
+          <p className="text-xs text-slate-600">
+            {system.assignedDeviceId
+              ? `PLC: ${system.assignedDevice?.name ?? `${system.assignedDeviceId} (Unavailable)`}`
+              : "No PLC connected"}
+          </p>
         </div>
       </button>
     );
@@ -293,7 +255,7 @@ export function CenterMapView({
                   {activeSystem.assignedDevice
                     ? `${activeSystem.assignedDevice.name} (${activeSystem.assignedDevice.id})`
                     : activeSystem.assignedDeviceId
-                    ? activeSystem.assignedDeviceId
+                    ? `${activeSystem.assignedDeviceId} (not currently available)`
                     : "No PLC assigned"}
                 </p>
                 <p>
@@ -315,7 +277,48 @@ export function CenterMapView({
                     : "No active alerts"}
                 </p>
               </div>
-              <DialogFooter className="sm:justify-start">
+              <div className="space-y-3 border-t pt-4">
+                <p className="text-sm font-semibold">Assign PLC</p>
+                <Select
+                  value={getSelectedDeviceId(activeSystem.key)}
+                  onValueChange={(value) =>
+                    setSelectedBySystem((curr) => ({
+                      ...curr,
+                      [activeSystem.key]: value,
+                    }))
+                  }
+                  disabled={isActiveSystemPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select PLC" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {devices.map((device) => (
+                      <SelectItem key={device.id} value={device.id}>
+                        {device.name} ({device.id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    disabled={isActiveSystemPending || !getSelectedDeviceId(activeSystem.key)}
+                    onClick={() => handleAssign(activeSystem.key)}
+                  >
+                    <Link2 className="mr-1 h-3.5 w-3.5" />
+                    Connect
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={isActiveSystemPending || !activeSystem.assignedDeviceId}
+                    onClick={() => handleRemove(activeSystem.key)}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                    Remove PLC
+                  </Button>
+                </div>
+              </div>
+              <DialogFooter className="sm:justify-start pt-1">
                 {activeSystem.assignedDeviceId ? (
                   <Link href={`/app/device/${activeSystem.assignedDeviceId}`}>
                     <Button>

@@ -18,8 +18,8 @@ export type CenterMapSystem = {
 };
 
 export const CENTER_MAP_SYSTEMS: CenterMapSystem[] = [
-  { key: "green-house", label: "Green House", left: 2, top: 4, width: 8, height: 24, rotate: 64 },
-  { key: "open-wetland", label: "Open Wetland", left: 12, top: 4, width: 8, height: 24, rotate: 58 },
+  { key: "green-house", label: "Green House", left: 2, top: 4, width: 8, height: 24 },
+  { key: "open-wetland", label: "Open Wetland", left: 12, top: 4, width: 8, height: 24 },
   { key: "atu-a", label: "ATU-A", left: 31, top: 4, width: 8, height: 24 },
   { key: "atu-b", label: "ATU-B", left: 43, top: 4, width: 8, height: 24 },
   { key: "dose", label: "DOSE", left: 37, top: 40, width: 8, height: 24 },
