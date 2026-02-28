@@ -81,3 +81,13 @@ export const propertyRecordingRowsTable = pgTable("property_recording_rows", {
 
 export type PropertyRecordingRow = typeof propertyRecordingRowsTable.$inferSelect;
 export type PropertyRecordingRowInsert = typeof propertyRecordingRowsTable.$inferInsert;
+
+// Global assignment of OSSF center systems to PLC device IDs.
+export const centerMapAssignmentsTable = pgTable("center_map_assignments", {
+  systemKey: varchar({ length: 64 }).primaryKey(),
+  deviceId: varchar({ length: 255 }),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
+export type CenterMapAssignment = typeof centerMapAssignmentsTable.$inferSelect;
+export type CenterMapAssignmentInsert = typeof centerMapAssignmentsTable.$inferInsert;

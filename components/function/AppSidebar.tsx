@@ -14,7 +14,7 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Activity, AlertCircle, BarChart3, CircuitBoard, ClipboardList, LayoutDashboard, LayoutDashboardIcon, LogOut, Settings, UserCheck } from "lucide-react"
+import { Activity, AlertCircle, BarChart3, CircuitBoard, ClipboardList, LayoutDashboard, LayoutDashboardIcon, LogOut, MapPinned, Settings, UserCheck } from "lucide-react"
 import Image from "next/image";
 import tam_agrilife from '@/images/tamu_agrilife_logo.png';
 import { handleLogout } from "@/lib/actions/auth";
@@ -45,6 +45,14 @@ export default function AppSidebar({ user }: { user: User }) {
                                         <SidebarMenuButton className='flex justify-between font-semibold text-sm'>
                                             <span>Dashboard</span>
                                             <LayoutDashboardIcon className="h-4 w-4" />
+                                        </SidebarMenuButton>
+                                    </Link>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <Link href="/app/center-map">
+                                        <SidebarMenuButton className='flex justify-between font-semibold text-sm'>
+                                            <span>Center Map</span>
+                                            <MapPinned className="h-4 w-4" />
                                         </SidebarMenuButton>
                                     </Link>
                                 </SidebarMenuItem>
